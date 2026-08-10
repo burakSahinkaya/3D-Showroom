@@ -60,6 +60,10 @@ final class ViewerState: ObservableObject {
 /// Döndürülebilir / yakınlaştırılabilir 3D model görüntüleyici (AR dışı).
 struct ModelViewerView: UIViewRepresentable {
     @ObservedObject var state: ViewerState
+    /// true ise ışığın konumunu gösteren güneş işareti çizilir (yalnızca ayar ekranı).
+    var showsLightGizmo: Bool = false
+    // Işık ayarları değişince görünüm güncellensin diye gözlemlenir.
+    @ObservedObject private var displaySettings = DisplaySettings.shared
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -67,6 +71,7 @@ struct ModelViewerView: UIViewRepresentable {
         let arView = ARView(frame: .zero,
                             cameraMode: .nonAR,
                             automaticallyConfigureSession: false)
+        context.coordinator.showsLightGizmo = showsLightGizmo
         context.coordinator.setup(arView: arView, state: state)
         return arView
     }
@@ -87,10 +92,13 @@ struct ModelViewerView: UIViewRepresentable {
         private var parts: [EntityTools.Part] = []
         private var originals: [String: [any RealityKit.Material]] = [:]
         private var paintable: Set<String> = []
+        private var light: DirectionalLight?
+        var showsLightGizmo = false
+        private var lightGizmo: Entity?
+        private var modelRadius: Float = 0.5
 
         private var yaw: Float = 0.55
         private var pitch: Float = -0.15
-        private var lookTarget = SIMD3<Float>(0, 0, 0)
         private var camDistance: Float = 1
         private var baseDistance: Float = 1
 
@@ -142,10 +150,21 @@ struct ModelViewerView: UIViewRepresentable {
             camDistance = baseDistance
             anchor.addChild(camera)
 
+            // Işık yandan-üstten gelsin: düz bakışta yüzey patlamasın, profil gölgeleri okunsun.
+            arView.environment.lighting.intensityExponent =
+                Float(DisplaySettings.shared.ambientExponent)
             let light = DirectionalLight()
-            light.light.intensity = 2000
-            light.look(at: .zero, from: SIMD3<Float>(1.5, 2, 2), relativeTo: nil)
+            light.light.intensity = Float(DisplaySettings.shared.lightIntensity)
+            light.light.color = DisplaySettings.shared.lightColor
+            light.shadow = DirectionalLightComponent.Shadow()
+            light.look(at: .zero, from: DisplaySettings.shared.lightPosition, relativeTo: nil)
             anchor.addChild(light)
+            self.light = light
+
+            modelRadius = radius
+            if showsLightGizmo {
+                buildLightGizmo(in: anchor, radius: radius)
+            }
 
             arView.scene.addAnchor(anchor)
             worldAnchor = anchor
@@ -161,6 +180,14 @@ struct ModelViewerView: UIViewRepresentable {
             stateRef = state
             arView?.environment.background = .color(UIColor(hex: state.background?.hex ?? "#EDEDED"))
             guard isLoaded else { return }
+
+            // Işık ayarlarını canlı uygula (Görüntüleme Ayarları ekranı için).
+            light?.light.intensity = Float(DisplaySettings.shared.lightIntensity)
+            light?.light.color = DisplaySettings.shared.lightColor
+            light?.look(at: .zero, from: DisplaySettings.shared.lightPosition, relativeTo: nil)
+            arView?.environment.lighting.intensityExponent =
+                Float(DisplaySettings.shared.ambientExponent)
+            updateLightGizmo()
 
             let presetID = state.selectedPreset?.id
             if needsMaterialRefresh || presetID != lastPresetID {
@@ -180,6 +207,36 @@ struct ModelViewerView: UIViewRepresentable {
             }
         }
 
+        // MARK: Işık gizmosu (yalnızca ayar ekranı)
+
+        /// Işığın konumunu gösteren güneş küresi + modele uzanan iz noktaları.
+        private func buildLightGizmo(in anchor: Entity, radius: Float) {
+            let gizmo = Entity()
+            let sun = ModelEntity(mesh: .generateSphere(radius: radius * 0.1),
+                                  materials: [UnlitMaterial(color: .systemYellow)])
+            sun.name = "gizmoSun"
+            gizmo.addChild(sun)
+            for index in 1...3 {
+                let dot = ModelEntity(mesh: .generateSphere(radius: radius * 0.028),
+                                      materials: [UnlitMaterial(color: .systemOrange)])
+                dot.name = "gizmoDot\(index)"
+                gizmo.addChild(dot)
+            }
+            anchor.addChild(gizmo)
+            lightGizmo = gizmo
+            updateLightGizmo()
+        }
+
+        private func updateLightGizmo() {
+            guard let gizmo = lightGizmo else { return }
+            let direction = simd_normalize(DisplaySettings.shared.lightPosition)
+            let sunPosition = direction * (modelRadius * 1.7)
+            gizmo.findEntity(named: "gizmoSun")?.position = sunPosition
+            for (index, t) in [Float(0.45), 0.65, 0.85].enumerated() {
+                gizmo.findEntity(named: "gizmoDot\(index + 1)")?.position = sunPosition * t
+            }
+        }
+
         // MARK: Kamera / döndürme
 
         private func applyOrbit() {
@@ -188,14 +245,13 @@ struct ModelViewerView: UIViewRepresentable {
         }
 
         private func updateCamera() {
-            let position = lookTarget + SIMD3<Float>(0, 0, camDistance)
-            camera.look(at: lookTarget, from: position, relativeTo: nil)
+            // Model her zaman merkezde: kamera yalnızca uzaklaşıp yakınlaşır.
+            camera.look(at: .zero, from: SIMD3<Float>(0, 0, camDistance), relativeTo: nil)
         }
 
         private func resetView() {
             yaw = 0.55
             pitch = -0.15
-            lookTarget = .zero
             camDistance = baseDistance
             applyOrbit()
             updateCamera()
@@ -207,12 +263,6 @@ struct ModelViewerView: UIViewRepresentable {
             let orbitPan = UIPanGestureRecognizer(target: self, action: #selector(handleOrbit(_:)))
             orbitPan.maximumNumberOfTouches = 1
             view.addGestureRecognizer(orbitPan)
-
-            let twoFingerPan = UIPanGestureRecognizer(target: self, action: #selector(handleTwoFingerPan(_:)))
-            twoFingerPan.minimumNumberOfTouches = 2
-            twoFingerPan.maximumNumberOfTouches = 2
-            twoFingerPan.delegate = self
-            view.addGestureRecognizer(twoFingerPan)
 
             let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
             pinch.delegate = self
@@ -230,16 +280,6 @@ struct ModelViewerView: UIViewRepresentable {
             yaw += Float(translation.x) * 0.008
             pitch = max(-1.3, min(1.3, pitch + Float(translation.y) * 0.008))
             applyOrbit()
-        }
-
-        @objc private func handleTwoFingerPan(_ gesture: UIPanGestureRecognizer) {
-            guard isLoaded else { return }
-            let translation = gesture.translation(in: gesture.view)
-            gesture.setTranslation(.zero, in: gesture.view)
-            let factor = camDistance * 0.0015
-            lookTarget.x -= Float(translation.x) * factor
-            lookTarget.y += Float(translation.y) * factor
-            updateCamera()
         }
 
         @objc private func handlePinch(_ gesture: UIPinchGestureRecognizer) {

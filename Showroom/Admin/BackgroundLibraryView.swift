@@ -15,8 +15,22 @@ struct BackgroundLibraryView: View {
                         .frame(width: 44, height: 44)
                         .overlay(RoundedRectangle(cornerRadius: 8)
                             .strokeBorder(Color.black.opacity(0.1)))
-                    TextField("Ad", text: nameBinding(for: background))
+                    VStack(alignment: .leading, spacing: 2) {
+                        TextField("Ad", text: nameBinding(for: background))
+                        if background.isDefault {
+                            Text("Varsayılan")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+                    }
                     Spacer()
+                    Button {
+                        setDefault(background)
+                    } label: {
+                        Image(systemName: background.isDefault ? "star.fill" : "star")
+                            .foregroundStyle(background.isDefault ? .orange : .secondary)
+                    }
+                    .buttonStyle(.plain)
                     ColorPicker("", selection: colorBinding(for: background), supportsOpacity: false)
                         .labelsHidden()
                 }
@@ -48,6 +62,13 @@ struct BackgroundLibraryView: View {
         Binding(
             get: { Color(hex: background.hex) },
             set: { background.hex = UIColor($0).hexString })
+    }
+
+    private func setDefault(_ background: BackgroundItem) {
+        for item in backgrounds {
+            item.isDefault = (item.id == background.id)
+        }
+        try? context.save()
     }
 
     private func addBackground() {

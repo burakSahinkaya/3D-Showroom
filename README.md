@@ -14,7 +14,8 @@
 - **3D detay görüntüleyici**
   - Dikeyde: üstte 3D model, altta kontroller
   - Yatayda: solda 3D model (ekranın %60+'ı), sağda kontrol paneli
-  - Tek parmakla döndürme, pinch ile yakınlaştırma, iki parmakla kaydırma, çift dokunuşla sıfırlama
+  - Tek parmakla döndürme, pinch ile yakınlaştırma; model her zaman merkezde sabit
+  - Sağ üstte görünüm sıfırlama butonu (çift dokunuş da aynı işi yapar)
 - **Gerçek ölçü slider'ları** — En/Boy cm cinsinden ayarlanır, model o eksende esner
 - **Renk / doku presetleri** — modele tek dokunuşla uygulanır; "Orijinal" seçeneğiyle geri dönülür
 
@@ -30,7 +31,8 @@
 - **Model düzenleme** — ad, klasör, etiket, açıklama, gerçek ve min/max ölçüler, varsayılan renk, izinli renkler, arka plan
 - **Boyanabilir parçalar** — ör. camlı kapaklarda cam parçası işaretten çıkarılır, renk yalnızca ahşap kısma uygulanır
 - **Preset kütüphanesi** — renk (renk seçici + pürüzlülük + metaliklik) ve doku (görsel + döşeme ölçeği) presetleri
-- **Arka plan kütüphanesi** ve **klasör yönetimi**
+- **Arka plan kütüphanesi** — ⭐ ile varsayılan arka plan seçimi — ve **klasör yönetimi**
+- **Görüntüleme Ayarları** — 3D sahne ışığının şiddeti, ortam ışığı, yönü, yüksekliği ve renk sıcaklığı (2700K–8000K) ayarlanabilir; canlı önizlemede ışığın konumu **güneş işaretiyle** 3D olarak gösterilir. Ayarlar kalıcıdır ve hem viewer'ı hem önizleme üretimini etkiler
 
 ## Mimari
 

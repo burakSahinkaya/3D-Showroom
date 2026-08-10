@@ -71,7 +71,7 @@ final class PreviewRenderer: ObservableObject {
             guard let self, let context = model.modelContext else { return }
             let presets = (try? context.fetch(FetchDescriptor<MaterialPreset>())) ?? []
             let backgrounds = (try? context.fetch(FetchDescriptor<BackgroundItem>())) ?? []
-            let background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.first
+            let background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.defaultItem
 
             var missing = !FileManager.default.fileExists(
                 atPath: FileStore.previewURL(modelID: model.id, presetID: nil).path)
@@ -127,9 +127,14 @@ final class PreviewRenderer: ObservableObject {
                     relativeTo: nil)
         anchor.addChild(camera)
 
+        // Viewer ile aynı ışık düzeni: yandan-üstten, gölgeli, ayarlardan okunur.
+        view.environment.lighting.intensityExponent =
+            Float(DisplaySettings.shared.ambientExponent)
         let light = DirectionalLight()
-        light.light.intensity = 2500
-        light.look(at: .zero, from: SIMD3<Float>(1.5, 2, 2), relativeTo: nil)
+        light.light.intensity = Float(DisplaySettings.shared.lightIntensity)
+        light.light.color = DisplaySettings.shared.lightColor
+        light.shadow = DirectionalLightComponent.Shadow()
+        light.look(at: .zero, from: DisplaySettings.shared.lightPosition, relativeTo: nil)
         anchor.addChild(light)
 
         view.scene.addAnchor(anchor)

@@ -51,13 +51,11 @@ enum EntityTools {
     }
 
     static func makeMaterial(preset: MaterialPreset) -> any RealityKit.Material {
+        var material = PhysicallyBasedMaterial()
         switch preset.kind {
         case .color:
-            return SimpleMaterial(color: UIColor(hex: preset.hex),
-                                  roughness: MaterialScalarParameter(floatLiteral: Float(preset.roughness)),
-                                  isMetallic: preset.metallic > 0.5)
+            material.baseColor = .init(tint: UIColor(hex: preset.hex))
         case .texture:
-            var material = PhysicallyBasedMaterial()
             if let fileName = preset.textureFileName,
                let texture = try? TextureResource.load(contentsOf: FileStore.textureURL(fileName)) {
                 material.baseColor = .init(texture: .init(texture))
@@ -67,10 +65,12 @@ enum EntityTools {
                 // Doku görseli yoksa/açılamazsa renge düş.
                 material.baseColor = .init(tint: UIColor(hex: preset.hex))
             }
-            material.roughness = .init(floatLiteral: Float(preset.roughness))
-            material.metallic = .init(floatLiteral: Float(preset.metallic))
-            return material
         }
+        material.roughness = .init(floatLiteral: Float(preset.roughness))
+        material.metallic = .init(floatLiteral: Float(preset.metallic))
+        // Ahşap kapaklar için yansımayı kıs: desen parlamadan okunabilsin.
+        material.specular = .init(floatLiteral: 0.15)
+        return material
     }
 
     /// Preset'i boyanabilir parçalara uygular; preset nil ise ya da parça boyanamazsa orijinale döner.

@@ -122,7 +122,7 @@ struct ImportModelsView: View {
                 try? context.save()
 
                 items[index].status = .rendering(0, presets.count + 1)
-                let background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.first
+                let background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.defaultItem
                 await PreviewRenderer.shared.generateQueued(for: model,
                                                             presets: presets,
                                                             background: background) { done, total in

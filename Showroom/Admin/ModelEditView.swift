@@ -220,7 +220,7 @@ struct ModelEditView: View {
         regenBusy = true
         try? context.save()
         Task {
-            let background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.first
+            let background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.defaultItem
             await PreviewRenderer.shared.generateQueued(for: model,
                                                         presets: presets,
                                                         background: background)

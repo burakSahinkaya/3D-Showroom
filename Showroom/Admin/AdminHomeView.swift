@@ -41,6 +41,11 @@ struct AdminHomeView: View {
                     } label: {
                         Label("Arka Planlar", systemImage: "photo")
                     }
+                    NavigationLink {
+                        DisplaySettingsView()
+                    } label: {
+                        Label("Görüntüleme Ayarları", systemImage: "sun.max")
+                    }
                 }
 
                 Section {
@@ -71,7 +76,7 @@ struct AdminHomeView: View {
         regenProgress = (0, targets.count)
         Task {
             for (index, model) in targets.enumerated() {
-                let background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.first
+                let background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.defaultItem
                 await PreviewRenderer.shared.generateQueued(for: model,
                                                             presets: presets,
                                                             background: background)

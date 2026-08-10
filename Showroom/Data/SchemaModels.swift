@@ -133,11 +133,21 @@ final class BackgroundItem {
     var name: String
     var hex: String
     var sortIndex: Int
+    /// Arka plan atanmamış modellerde kullanılacak varsayılan.
+    var isDefault: Bool = false
 
-    init(name: String, hex: String, sortIndex: Int = 0) {
+    init(name: String, hex: String, sortIndex: Int = 0, isDefault: Bool = false) {
         self.id = UUID()
         self.name = name
         self.hex = hex
         self.sortIndex = sortIndex
+        self.isDefault = isDefault
+    }
+}
+
+extension Array where Element == BackgroundItem {
+    /// Varsayılan işaretli arka plan; yoksa sıradaki ilk öğe.
+    var defaultItem: BackgroundItem? {
+        first { $0.isDefault } ?? first
     }
 }

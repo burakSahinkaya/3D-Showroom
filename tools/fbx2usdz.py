@@ -23,7 +23,10 @@ for mat in bpy.data.materials:
     for node in list(tree.nodes):
         if node.type == "TEX_IMAGE":
             img = node.image
-            if img is None or not os.path.exists(bpy.path.abspath(img.filepath)):
+            # Gomulu (packed) dokular dosya sisteminde olmasa da gecerlidir.
+            packed = img is not None and img.packed_file is not None
+            on_disk = img is not None and os.path.exists(bpy.path.abspath(img.filepath))
+            if not (packed or on_disk):
                 tree.nodes.remove(node)
     # Principled BSDF taban rengini notr ahsap tonuna cek
     for node in tree.nodes:

@@ -75,6 +75,17 @@ struct ModelDetailView: View {
                     ContentUnavailableView("Model açılamadı", systemImage: "exclamationmark.triangle")
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                if !state.loadFailed && !state.isLoading {
+                    Button {
+                        state.resetCounter += 1
+                    } label: {
+                        Label("Sıfırla", systemImage: "arrow.counterclockwise")
+                    }
+                    .buttonStyle(.bordered)
+                    .padding()
+                }
+            }
             .overlay(alignment: .bottomTrailing) {
                 if ARWorldTrackingConfiguration.isSupported && !state.loadFailed {
                     Button {
@@ -98,7 +109,7 @@ struct ModelDetailView: View {
         } else if let defaultID = model.defaultPresetID {
             state.selectedPreset = presets.first { $0.id == defaultID }
         }
-        state.background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.first
+        state.background = backgrounds.first { $0.id == model.backgroundID } ?? backgrounds.defaultItem
         state.clampDimensions()
     }
 }
