@@ -37,6 +37,10 @@ final class DisplaySettings: ObservableObject {
         didSet { UserDefaults.standard.set(lightTemperature, forKey: "display.lightTemperature") }
     }
 
+    @Published var shadowsEnabled: Bool {
+        didSet { UserDefaults.standard.set(shadowsEnabled, forKey: "display.shadowsEnabled") }
+    }
+
     private init() {
         let defaults = UserDefaults.standard
         lightIntensity = defaults.object(forKey: "display.lightIntensity") as? Double
@@ -49,6 +53,7 @@ final class DisplaySettings: ObservableObject {
             ?? Self.defaultLightElevation
         lightTemperature = defaults.object(forKey: "display.lightTemperature") as? Double
             ?? Self.defaultLightTemperature
+        shadowsEnabled = defaults.object(forKey: "display.shadowsEnabled") as? Bool ?? true
     }
 
     /// Kelvin değerinden ışık rengi (Tanner Helland yaklaşımı).
@@ -88,5 +93,6 @@ final class DisplaySettings: ObservableObject {
         lightAzimuth = Self.defaultLightAzimuth
         lightElevation = Self.defaultLightElevation
         lightTemperature = Self.defaultLightTemperature
+        shadowsEnabled = true
     }
 }

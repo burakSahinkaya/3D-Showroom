@@ -169,6 +169,7 @@ private struct ARPlacementContainer: UIViewRepresentable {
 
         private var wrapper: ModelEntity?
         private var placedAnchor: AnchorEntity?
+        private var outlineProcessor: OutlinePostProcessor?
         private var yawAngle: Float = 0
         private var pitchAngle: Float = 0
         private var scaleFactor: Float = 1
@@ -188,6 +189,10 @@ private struct ARPlacementContainer: UIViewRepresentable {
             self.trackingInfo = trackingInfo
 
             arView.session.delegate = self
+
+            outlineProcessor = OutlinePostProcessor()
+            outlineProcessor?.attach(to: arView)
+            outlineProcessor?.configure(preset: state.selectedPreset)
 
             let coaching = ARCoachingOverlayView()
             coaching.session = arView.session

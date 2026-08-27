@@ -1,8 +1,8 @@
 # 3D Showroom
 
-**iPad için offline 3D ürün sunum uygulaması** — satış temsilcisinin müşteri yanında 3D modelleri (dolap/çekmece kapakları vb.) gösterebilmesi, renklerini ve ölçülerini anında değiştirebilmesi ve AR ile müşterinin mekânına gerçek boyutta yerleştirebilmesi için tasarlandı.
+**iPad ve iPhone için offline 3D ürün sunum uygulaması** — satış temsilcisinin müşteri yanında 3D modelleri (dolap/çekmece kapakları vb.) gösterebilmesi, renklerini ve ölçülerini anında değiştirebilmesi ve AR ile müşterinin mekânına gerçek boyutta yerleştirebilmesi için tasarlandı.
 
-> SwiftUI · RealityKit · ARKit · SwiftData — iPadOS 26+ · Tamamen offline çalışır
+> SwiftUI · RealityKit · ARKit · SwiftData · Metal — iPadOS / iOS 26+ · Tamamen offline çalışır
 
 ---
 
@@ -18,6 +18,7 @@
   - Sağ üstte görünüm sıfırlama butonu (çift dokunuş da aynı işi yapar)
 - **Gerçek ölçü slider'ları** — En/Boy cm cinsinden ayarlanır, model o eksende esner
 - **Renk / doku presetleri** — modele tek dokunuşla uygulanır; "Orijinal" seçeneğiyle geri dönülür
+- **Responsive** — aynı arayüz iPhone'da da doğal çalışır; sütun sayısı ve panel yerleşimi ekran oranına göre uyarlanır
 
 ### 📐 AR Modu
 - Yüzey algılama + dokunarak yerleştirme, **gerçek ölçüde** (LiDAR gerektirmez)
@@ -30,9 +31,14 @@
 - **Model listesi** — arama, klasör ve etiket filtresi, çoklu seçimle **toplu silme / toplu taşıma**
 - **Model düzenleme** — ad, klasör, etiket, açıklama, gerçek ve min/max ölçüler, varsayılan renk, izinli renkler, arka plan
 - **Boyanabilir parçalar** — ör. camlı kapaklarda cam parçası işaretten çıkarılır, renk yalnızca ahşap kısma uygulanır
-- **Preset kütüphanesi** — renk (renk seçici + pürüzlülük + metaliklik) ve doku (görsel + döşeme ölçeği) presetleri
+- **Preset kütüphanesi** — renk ve doku presetleri, **canlı 3D önizlemeli** düzenleme ekranıyla:
+  - **Yüzey** — pürüzlülük, metaliklik, yansıma gücü
+  - **Lake / Vernik (clearcoat)** — miktar ve cila pürüzlülüğü; lake kapak görünümü için
+  - **Kabartma (bump)** — doku dosyası gerektirmeyen prosedürel desen: ince pürüz (portakal kabuğu) veya ahşap damarı; şiddet ve sıklık ayarlı
+  - **Kontur** — modelin dış hatlarını çizen çizgi (inverted hull) ve derinlik tabanlı **iç çizgi** efekti (Metal post-process); profil kenarlarını ve köşeleri vurgular
+  - **Şeffaflık** — cam görünümü için opaklık
 - **Arka plan kütüphanesi** — ⭐ ile varsayılan arka plan seçimi — ve **klasör yönetimi**
-- **Görüntüleme Ayarları** — 3D sahne ışığının şiddeti, ortam ışığı, yönü, yüksekliği ve renk sıcaklığı (2700K–8000K) ayarlanabilir; canlı önizlemede ışığın konumu **güneş işaretiyle** 3D olarak gösterilir. Ayarlar kalıcıdır ve hem viewer'ı hem önizleme üretimini etkiler
+- **Görüntüleme Ayarları** — 3D sahne ışığının şiddeti, ortam ışığı, yönü, yüksekliği ve renk sıcaklığı (2700K–8000K) ayarlanabilir; canlı önizlemede ışığın konumu **güneş işaretiyle** 3D olarak gösterilir. Gölgeler aç/kapa anahtarıyla kontrol edilir. Ayarlar kalıcıdır ve hem viewer'ı hem önizleme üretimini etkiler
 
 ## Mimari
 
@@ -44,6 +50,9 @@ Showroom/
 │   └── SchemaModels.swift   # SwiftData modelleri (Klasör, Model, Preset, Arka Plan)
 ├── ThreeD/
 │   ├── EntityTools.swift    # USDZ parça tarama, materyal uygulama, ölçü hesaplama
+│   ├── BumpTextureGenerator.swift # Prosedürel bump (normal) haritaları
+│   ├── OutlinePostProcessor.swift # Derinlik tabanlı iç çizgi efekti
+│   ├── OutlineEdge.metal    # Kenar algılama compute shader'ı
 │   ├── PreviewRenderer.swift# Model × preset PNG önizleme üretimi (offscreen RealityKit)
 │   ├── ModelViewerView.swift# Döndürülebilir 3D görüntüleyici (non-AR)
 │   └── ARPlacementScreen.swift # AR yerleştirme ekranı
@@ -59,15 +68,17 @@ Showroom/
 
 | | |
 |---|---|
-| Hedef cihaz | iPad, iPadOS 26.0+ |
-| Geliştirme | Xcode 26+ (iOS 27 beta cihazlar için Xcode beta) |
+| Hedef cihaz | iPad ve iPhone, iPadOS / iOS 26.0+ |
+| Geliştirme | Xcode 26+ (iOS 27 beta cihazlar için Xcode beta) · Metal Toolchain bileşeni kurulu olmalı |
 | Model formatı | USDZ / USDC |
 
 ## Kurulum
 
 1. `Showroom.xcodeproj` dosyasını Xcode ile açın
 2. Target → Signing & Capabilities → kendi geliştirici hesabınızı seçin
-3. iPad'inizi hedef seçip çalıştırın
+3. iPad veya iPhone'unuzu hedef seçip çalıştırın
+
+> Xcode ilk derlemede "Download Xcode support for Metal Toolchain" sorarsa **Download & Install** seçin — iç çizgi efektinin shader'ı Metal derleyicisi gerektirir.
 
 ## FBX → USDZ Dönüşümü
 

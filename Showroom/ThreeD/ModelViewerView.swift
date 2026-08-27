@@ -13,6 +13,9 @@ final class ViewerState: ObservableObject {
     @Published var heightCM: Double
     /// Artırıldığında kamera/döndürme sıfırlanır.
     @Published var resetCounter = 0
+    /// Artırıldığında seçili preset aynı kalsa bile materyal yeniden uygulanır
+    /// (preset düzenleme ekranındaki canlı önizleme için).
+    @Published var materialRefreshToken = 0
     @Published var isLoading = true
     @Published var loadFailed = false
 
@@ -93,6 +96,7 @@ struct ModelViewerView: UIViewRepresentable {
         private var originals: [String: [any RealityKit.Material]] = [:]
         private var paintable: Set<String> = []
         private var light: DirectionalLight?
+        private var outlineProcessor: OutlinePostProcessor?
         var showsLightGizmo = false
         private var lightGizmo: Entity?
         private var modelRadius: Float = 0.5
@@ -106,11 +110,14 @@ struct ModelViewerView: UIViewRepresentable {
         private var needsMaterialRefresh = true
         private var lastPresetID: UUID?
         private var lastResetCounter = 0
+        private var lastMaterialToken = 0
 
         func setup(arView: ARView, state: ViewerState) {
             self.arView = arView
             self.stateRef = state
             arView.environment.background = .color(UIColor(hex: state.background?.hex ?? "#EDEDED"))
+            outlineProcessor = OutlinePostProcessor()
+            outlineProcessor?.attach(to: arView)
             addGestures(to: arView)
             Task { await load() }
         }
@@ -156,7 +163,10 @@ struct ModelViewerView: UIViewRepresentable {
             let light = DirectionalLight()
             light.light.intensity = Float(DisplaySettings.shared.lightIntensity)
             light.light.color = DisplaySettings.shared.lightColor
-            light.shadow = DirectionalLightComponent.Shadow()
+            // Geniş menzil + yüksek bias: model eğilince yüzeye düşen gri gölge bandını önler.
+            light.shadow = DisplaySettings.shared.shadowsEnabled
+                ? DirectionalLightComponent.Shadow(maximumDistance: 20, depthBias: 5)
+                : nil
             light.look(at: .zero, from: DisplaySettings.shared.lightPosition, relativeTo: nil)
             anchor.addChild(light)
             self.light = light
@@ -184,20 +194,26 @@ struct ModelViewerView: UIViewRepresentable {
             // Işık ayarlarını canlı uygula (Görüntüleme Ayarları ekranı için).
             light?.light.intensity = Float(DisplaySettings.shared.lightIntensity)
             light?.light.color = DisplaySettings.shared.lightColor
+            light?.shadow = DisplaySettings.shared.shadowsEnabled
+                ? DirectionalLightComponent.Shadow(maximumDistance: 20, depthBias: 5)
+                : nil
             light?.look(at: .zero, from: DisplaySettings.shared.lightPosition, relativeTo: nil)
             arView?.environment.lighting.intensityExponent =
                 Float(DisplaySettings.shared.ambientExponent)
             updateLightGizmo()
 
             let presetID = state.selectedPreset?.id
-            if needsMaterialRefresh || presetID != lastPresetID {
+            if needsMaterialRefresh || presetID != lastPresetID
+                || state.materialRefreshToken != lastMaterialToken {
                 EntityTools.apply(preset: state.selectedPreset,
                                   paintable: paintable,
                                   parts: parts,
                                   originals: originals)
                 lastPresetID = presetID
+                lastMaterialToken = state.materialRefreshToken
                 needsMaterialRefresh = false
             }
+            outlineProcessor?.configure(preset: state.selectedPreset)
 
             stretch.scale = SIMD3<Float>(state.widthScale, state.heightScale, 1)
 

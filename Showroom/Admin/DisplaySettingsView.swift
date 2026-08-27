@@ -46,6 +46,7 @@ struct DisplaySettingsView: View {
                     }
                     Slider(value: $settings.ambientExponent, in: 0.3...1.2, step: 0.05)
                 }
+                Toggle("Gölgeler", isOn: $settings.shadowsEnabled)
                 VStack(alignment: .leading) {
                     HStack {
                         Text("Işık Sıcaklığı")

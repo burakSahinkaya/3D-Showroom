@@ -87,6 +87,15 @@ enum PresetKind: String {
     case texture
 }
 
+/// Prosedürel kabartma (bump) çeşidi.
+enum BumpKind: String {
+    case none
+    /// İnce pürüz — lake yüzeydeki hafif "portakal kabuğu" dokusu.
+    case noise
+    /// Dikey ahşap damarı.
+    case wood
+}
+
 @Model
 final class MaterialPreset {
     @Attribute(.unique) var id: UUID
@@ -100,9 +109,34 @@ final class MaterialPreset {
     var tileScale: Double
     var sortIndex: Int
 
+    // Gelişmiş materyal alanları (eski kayıtlar için varsayılan değerlerle gelir).
+    /// Yansıma gücü (0-1). Corona'daki IOR'un gerçek zamanlı karşılığı.
+    var specular: Double = 0.15
+    /// Lake/vernik katmanı miktarı (0 = yok).
+    var clearcoat: Double = 0
+    /// Lake katmanının pürüzlülüğü (düşük = ayna gibi cila).
+    var clearcoatRoughness: Double = 0.1
+    var bumpKindRaw: String = BumpKind.none.rawValue
+    /// Kabartma şiddeti (0-1).
+    var bumpIntensity: Double = 0.3
+    /// Kabartma deseni sıklığı (büyük = daha ince desen).
+    var bumpScale: Double = 6
+    /// 1 = opak; düşük değerler cam görünümü için.
+    var opacity: Double = 1
+    /// Kontur (outline) kalınlığı; 0 = kapalı. Model boyutunun yüzdesi olarak uygulanır.
+    var outlineWidth: Double = 0
+    var outlineHex: String = "#1C1C1E"
+    /// İç çizgi (derinlik kenarı) hassasiyeti; 0 = kapalı, 1 = en duyarlı.
+    var innerLineStrength: Double = 0
+
     var kind: PresetKind {
         get { PresetKind(rawValue: kindRaw) ?? .color }
         set { kindRaw = newValue.rawValue }
+    }
+
+    var bumpKind: BumpKind {
+        get { BumpKind(rawValue: bumpKindRaw) ?? .none }
+        set { bumpKindRaw = newValue.rawValue }
     }
 
     init(name: String,

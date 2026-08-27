@@ -13,6 +13,7 @@ final class PreviewRenderer: ObservableObject {
 
     let hostView = UIView(frame: CGRect(x: 0, y: 0, width: 640, height: 640))
     private var arView: ARView?
+    private var outlineProcessor: OutlinePostProcessor?
     private var chain: Task<Void, Never>?
     private var attemptedAutoGeneration = Set<UUID>()
 
@@ -32,6 +33,8 @@ final class PreviewRenderer: ObservableObject {
         let view = ARView(frame: hostView.bounds,
                           cameraMode: .nonAR,
                           automaticallyConfigureSession: false)
+        outlineProcessor = OutlinePostProcessor()
+        outlineProcessor?.attach(to: view)
         hostView.addSubview(view)
         arView = view
         return view
@@ -133,7 +136,9 @@ final class PreviewRenderer: ObservableObject {
         let light = DirectionalLight()
         light.light.intensity = Float(DisplaySettings.shared.lightIntensity)
         light.light.color = DisplaySettings.shared.lightColor
-        light.shadow = DirectionalLightComponent.Shadow()
+        light.shadow = DisplaySettings.shared.shadowsEnabled
+            ? DirectionalLightComponent.Shadow(maximumDistance: 20, depthBias: 5)
+            : nil
         light.look(at: .zero, from: DisplaySettings.shared.lightPosition, relativeTo: nil)
         anchor.addChild(light)
 
@@ -144,6 +149,7 @@ final class PreviewRenderer: ObservableObject {
 
         for (index, job) in jobs.enumerated() {
             EntityTools.apply(preset: job.1, paintable: paintable, parts: parts, originals: originals)
+            outlineProcessor?.configure(preset: job.1)
             // Materyal değişiminin ekrana yansıması için kısa bekleme.
             try? await Task.sleep(nanoseconds: 200_000_000)
             let image: UIImage? = await withCheckedContinuation { continuation in
